@@ -15,6 +15,8 @@ export interface NebulaFrame {
   roll: number;
   pointerX: number;
   pointerY: number;
+  /** 0..1 smooth blend into the gold supernova palette. */
+  supernova: number;
 }
 
 const COMPOSITE_FRAG = /* glsl */ `
@@ -126,6 +128,7 @@ export class NebulaScene {
         uTime: { value: 0 },
         uExpand: { value: 0.2 },
         uEnergy: { value: 0 },
+        uSupernova: { value: 0 },
         uRoll: { value: 0 },
         uPointer: { value: new THREE.Vector2() },
         uNoise: { value: texture },
@@ -250,6 +253,7 @@ export class NebulaScene {
     mat.uTime.value = this.time;
     mat.uExpand.value = frame.expand;
     mat.uEnergy.value = frame.energy;
+    mat.uSupernova.value = frame.supernova;
     mat.uRoll.value = frame.roll;
     mat.uPointer.value.set(frame.pointerX, frame.pointerY);
 
@@ -261,7 +265,7 @@ export class NebulaScene {
     // Expansion pushes the whole sky away; collapse pulls it back in.
     this.starfield.group.scale.setScalar(1.0 + frame.expand * 0.07);
 
-    this.bloom.strength = 0.4 + frame.energy * 0.3 + (1 - frame.expand) * 0.4;
+    this.bloom.strength = 0.4 + frame.energy * 0.3 + (1 - frame.expand) * 0.4 + frame.supernova * 0.28;
     this.bloom.radius = 0.5 + (1 - frame.expand) * 0.16;
 
     // Keep the screen-space core star glued to the nebula's projected centre.

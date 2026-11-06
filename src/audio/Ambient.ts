@@ -168,6 +168,229 @@ export class AmbientAudio {
     }
   }
 
+  /** Short bright chime when a mote is swallowed. */
+  absorb(value: number): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "triangle";
+    const freq = 540 + Math.min(420, Math.max(0, value) * 3.5);
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.16, now + 0.1);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.032, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.master);
+    if (this.reverb) gain.connect(this.reverb);
+    osc.start(now);
+    osc.stop(now + 0.24);
+  }
+
+  /** Crackle plus a little body when a void shard is destroyed. */
+  shatter(power: number, perfect: boolean): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master || !this.noiseBuffer) return;
+    const now = ctx.currentTime;
+    const source = ctx.createBufferSource();
+    source.buffer = this.noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 700 + power * 1400;
+    const gain = ctx.createGain();
+    const level = 0.045 + power * 0.05 + (perfect ? 0.025 : 0);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(level, now + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    if (this.reverb) gain.connect(this.reverb);
+    source.start(now);
+    source.stop(now + 0.28);
+
+    const body = ctx.createOscillator();
+    body.type = "sine";
+    body.frequency.setValueAtTime(170, now);
+    body.frequency.exponentialRampToValueAtTime(58, now + 0.2);
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(0.0001, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.035, now + 0.01);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+    body.connect(bodyGain);
+    bodyGain.connect(this.master);
+    body.start(now);
+    body.stop(now + 0.3);
+  }
+
+  /** The exhale: a rushing wave with a sub hit. */
+  shock(power: number): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master || !this.noiseBuffer) return;
+    const now = ctx.currentTime;
+    const p = Math.min(1, Math.max(0, power));
+
+    const source = ctx.createBufferSource();
+    source.buffer = this.noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1400, now);
+    filter.frequency.exponentialRampToValueAtTime(140, now + 0.5);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.04 + p * 0.08, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.65);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    if (this.reverb) gain.connect(this.reverb);
+    source.start(now);
+    source.stop(now + 0.7);
+
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(78, now);
+    sub.frequency.exponentialRampToValueAtTime(30, now + 0.55);
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.exponentialRampToValueAtTime(0.07 + p * 0.1, now + 0.02);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+    sub.connect(subGain);
+    subGain.connect(this.master);
+    if (this.reverb) subGain.connect(this.reverb);
+    sub.start(now);
+    sub.stop(now + 0.72);
+  }
+
+  damage(): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(95, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.45);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 260;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.14, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    if (this.reverb) gain.connect(this.reverb);
+    osc.start(now);
+    osc.stop(now + 0.52);
+  }
+
+  wave(): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99];
+    notes.forEach((frequency, index) => {
+      const start = now + index * 0.085;
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.025, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.5);
+      osc.connect(gain);
+      gain.connect(this.master!);
+      if (this.reverb) gain.connect(this.reverb);
+      osc.start(start);
+      osc.stop(start + 0.52);
+    });
+  }
+
+  supernova(): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(720, now + 0.8);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.06, now + 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+    osc.connect(gain);
+    gain.connect(this.master);
+    if (this.reverb) gain.connect(this.reverb);
+    osc.start(now);
+    osc.stop(now + 1.45);
+
+    for (const [frequency, level] of [
+      [440, 0.03],
+      [660, 0.02],
+      [880, 0.014],
+    ]) {
+      const tone = ctx.createOscillator();
+      tone.type = "triangle";
+      tone.frequency.value = frequency;
+      const toneGain = ctx.createGain();
+      toneGain.gain.setValueAtTime(0.0001, now);
+      toneGain.gain.exponentialRampToValueAtTime(level, now + 0.15);
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+      tone.connect(toneGain);
+      toneGain.connect(this.master);
+      if (this.reverb) toneGain.connect(this.reverb);
+      tone.start(now);
+      tone.stop(now + 1.65);
+    }
+  }
+
+  tick(final = false): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.value = final ? 880 : 520;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(final ? 0.022 : 0.012, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.master);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
+  gameOver(victory: boolean): void {
+    const ctx = this.sfxContext();
+    if (!ctx || !this.master) return;
+    const now = ctx.currentTime;
+    const notes = victory ? [392, 523.25, 659.25, 783.99] : [349.23, 293.66, 233.08];
+    notes.forEach((frequency, index) => {
+      const start = now + index * 0.16;
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.03, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.8);
+      osc.connect(gain);
+      gain.connect(this.master!);
+      if (this.reverb) gain.connect(this.reverb);
+      osc.start(start);
+      osc.stop(start + 0.85);
+    });
+  }
+
+  private sfxContext(): AudioContext | null {
+    if (!this.started || !this.ctx || !this.master || this.muted) return null;
+    return this.ctx;
+  }
+
   private thump(): void {
     if (!this.ctx || !this.master || this.muted) return;
     const ctx = this.ctx;

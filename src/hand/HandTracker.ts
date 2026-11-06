@@ -33,6 +33,7 @@ export class HandTracker {
   private landmarker: HandLandmarker | null = null;
   private stream: MediaStream | null = null;
   private running = false;
+  private paused = false;
   private raf = 0;
   private lastVideoTime = -1;
   private lastTimestamp = 0;
@@ -51,6 +52,11 @@ export class HandTracker {
 
   get active(): boolean {
     return this.running;
+  }
+
+  /** Stops inference while keeping the camera warm (e.g. on the menu). */
+  setPaused(paused: boolean): void {
+    this.paused = paused;
   }
 
   get aspect(): number {
@@ -147,6 +153,7 @@ export class HandTracker {
 
   stop(): void {
     this.running = false;
+    this.paused = false;
     cancelAnimationFrame(this.raf);
     this.landmarker?.close();
     this.landmarker = null;
@@ -159,6 +166,7 @@ export class HandTracker {
   private tick = (): void => {
     if (!this.running) return;
     this.raf = requestAnimationFrame(this.tick);
+    if (this.paused) return;
 
     const video = this.video;
     if (document.hidden || video.readyState < 2) return;

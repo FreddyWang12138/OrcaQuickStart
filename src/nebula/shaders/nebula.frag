@@ -5,6 +5,7 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform float uExpand;
 uniform float uEnergy;
+uniform float uSupernova;
 uniform float uRoll;
 uniform vec2 uPointer;
 uniform sampler3D uNoise;
@@ -49,6 +50,12 @@ void main() {
   vec3 cMid = mix(vec3(1.0, 0.12, 0.42) * 1.45, vec3(0.28, 0.52, 1.0) * 1.15, expand);
   vec3 cOuter = mix(vec3(0.24, 0.02, 0.40) * 1.05, vec3(0.03, 0.09, 0.44) * 0.95, expand);
   vec3 cAccent = mix(vec3(1.0, 0.38, 0.66), vec3(0.26, 0.96, 0.92), smoothstep(0.15, 0.82, expand));
+
+  // The game's supernova state turns the whole nebula into white-hot gold.
+  cCore = mix(cCore, vec3(1.0, 0.93, 0.66) * 2.3, uSupernova * 0.72);
+  cMid = mix(cMid, vec3(1.0, 0.48, 0.20) * 1.45, uSupernova * 0.60);
+  cOuter = mix(cOuter, vec3(0.42, 0.12, 0.10), uSupernova * 0.40);
+  cAccent = mix(cAccent, vec3(1.0, 0.82, 0.50), uSupernova * 0.65);
 
   // March only the slab that can contain the cloud.
   float tStart = max(0.2, camZ - spread * 1.55);
@@ -131,6 +138,13 @@ void main() {
     t += dt;
     if (trans < 0.02) break;
   }
+
+  acc *= 1.0 + uSupernova * 0.18;
+  // Re-light the cloud as incandescent gold during a supernova while keeping
+  // the filament structure (the original emission is mixed back in).
+  float novaLum = dot(acc, vec3(0.299, 0.587, 0.114));
+  vec3 novaGold = vec3(novaLum * 2.2, novaLum * 1.18, novaLum * 0.42);
+  acc = mix(acc, novaGold, uSupernova * 0.95);
 
   // Tight screen-space corona so the core reads as a star. The centre is the
   // projected world origin, which drifts with the hand parallax.

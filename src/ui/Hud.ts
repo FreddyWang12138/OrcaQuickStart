@@ -12,7 +12,9 @@ export interface HudState {
 
 export interface HudCallbacks {
   onStart: () => void;
+  onFree: () => void;
   onDemo: () => void;
+  onMouseGame: () => void;
   onToggleSound: () => void;
 }
 
@@ -25,7 +27,9 @@ const $ = <T extends HTMLElement>(id: string): T => {
 export class Hud {
   private readonly landing = $("landing");
   private readonly startBtn = $<HTMLButtonElement>("btn-start");
+  private readonly freeBtn = $<HTMLButtonElement>("btn-free");
   private readonly demoBtn = $<HTMLButtonElement>("btn-demo");
+  private readonly mouseGameBtn = $<HTMLButtonElement>("btn-mouse-game");
   private readonly soundBtn = $<HTMLButtonElement>("btn-sound");
   private readonly fullBtn = $<HTMLButtonElement>("btn-full");
   private readonly note = $("note");
@@ -57,7 +61,9 @@ export class Hud {
   constructor(private readonly callbacks: HudCallbacks) {
     this.preview = new CameraPreview($<HTMLCanvasElement>("cam-overlay"));
     this.startBtn.addEventListener("click", () => this.callbacks.onStart());
+    this.freeBtn.addEventListener("click", () => this.callbacks.onFree());
     this.demoBtn.addEventListener("click", () => this.callbacks.onDemo());
+    this.mouseGameBtn.addEventListener("click", () => this.callbacks.onMouseGame());
     this.soundBtn.addEventListener("click", () => this.callbacks.onToggleSound());
     this.fullBtn.addEventListener("click", () => {
       void this.toggleFullscreen();
@@ -76,8 +82,7 @@ export class Hud {
     this.bootFill.style.width = "100%";
     this.bootPct.textContent = "100%";
     this.bootLabel.textContent = "星云已就绪";
-    this.startBtn.disabled = false;
-    this.demoBtn.disabled = false;
+    this.setButtonsDisabled(false);
     window.setTimeout(() => this.boot.classList.add("is-done"), 650);
     window.setTimeout(() => {
       this.boot.hidden = true;
@@ -85,8 +90,7 @@ export class Hud {
   }
 
   setBusy(label: string): void {
-    this.startBtn.disabled = true;
-    this.demoBtn.disabled = true;
+    this.setButtonsDisabled(true);
     this.note.classList.remove("is-error");
     this.note.classList.add("is-busy");
     this.note.textContent = label;
@@ -96,8 +100,14 @@ export class Hud {
     this.note.classList.remove("is-busy");
     this.note.classList.add("is-error");
     this.note.textContent = label;
-    this.startBtn.disabled = false;
-    this.demoBtn.disabled = false;
+    this.setButtonsDisabled(false);
+  }
+
+  private setButtonsDisabled(disabled: boolean): void {
+    this.startBtn.disabled = disabled;
+    this.freeBtn.disabled = disabled;
+    this.demoBtn.disabled = disabled;
+    this.mouseGameBtn.disabled = disabled;
   }
 
   setCameraLive(): void {
@@ -131,6 +141,11 @@ export class Hud {
   hideLanding(): void {
     this.landing.classList.add("is-hidden");
     document.body.classList.add("is-live");
+  }
+
+  showLanding(): void {
+    this.landing.classList.remove("is-hidden");
+    document.body.classList.remove("is-live", "is-demo");
   }
 
   setMuted(muted: boolean): void {
